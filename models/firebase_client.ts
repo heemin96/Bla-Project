@@ -15,6 +15,7 @@ export default class FirebaseClient {
 
   private auth: Auth;
 
+  //객체 생성하고 초기화
   public constructor() {
     const apps = getApps();
     if (apps.length === 0) {

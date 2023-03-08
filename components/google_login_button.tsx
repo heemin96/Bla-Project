@@ -19,7 +19,9 @@ export const GoogleLoginButton = function ({ onClick }: Props) {
           <img
             src="/google.svg"
             alt="google 로고"
-            style={{ backgroundColor: "white", padding: "8px" }}
+            style={{
+              padding: "8px",
+            }}
           />
         }
         onClick={onClick}

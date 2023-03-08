@@ -20,6 +20,7 @@ const AuthUserContext = createContext<InAuthUserContext>({
 export const AuthUserProvider = function ({
   children,
 }: {
+  //ReactNode 타입은 jsx 내에서 사용할 수 있는 모든 요소의 타입을 의미, 즉 string, null, undefined 등을 포함하는 가장 넓은 범위를 갖는 타입
   children: React.ReactNode;
 }) {
   const auth = useFirebaseAuth();
