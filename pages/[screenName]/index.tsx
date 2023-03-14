@@ -14,11 +14,12 @@ import {
 import { GetServerSideProps, NextPage } from "next";
 import { ServiceLayout } from "./../../components/service_layout";
 import ResizeTextarea from "react-textarea-autosize";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/auth_user.context";
 import { InAuthUser } from "../../models/in_auth_user";
 import axios, { AxiosResponse } from "axios";
 import MessageItem from "../../components/message_item";
+import { InMessage } from "../../models/member/in_message";
 
 interface Props {
   userInfo: InAuthUser | null;
@@ -71,6 +72,56 @@ const UserHomePage: NextPage<Props> = function ({ userInfo }) {
   const [isAnonymous, setAnonymous] = useState(true);
   const toast = useToast();
   const { authUser } = useAuth();
+  const [messageList, setMessageList] = useState<InMessage[]>([]);
+  const [messageListFetchTrigger, setMessageListFetchTrigger] = useState(false);
+
+  async function fetchMessageList(uid: string) {
+    try {
+      const resp = await fetch(`/api/messages.list?uid=${uid}`);
+
+      if (resp.status === 200) {
+        const data = await resp.json();
+        setMessageList(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function fetchMessageInfo({
+    uid,
+    messageId,
+  }: {
+    uid: string;
+    messageId: String;
+  }) {
+    try {
+      const resp = await fetch(
+        `/api/messages.info?uid=${uid}&messageId=${messageId}`
+      );
+
+      if (resp.status === 200) {
+        const data: InMessage = await resp.json();
+        setMessageList((prev) => {
+          const findIndex = prev.findIndex((fv) => fv.id === data.id);
+          if (findIndex > 0) {
+            const updateArr = [...prev];
+            updateArr[findIndex] = data;
+            return updateArr;
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    if (userInfo === null) return;
+    fetchMessageList(userInfo.uid);
+  }, [userInfo]);
+
   if (userInfo === null) {
     return <p>사용자를 찾을 수 없습니다.</p>;
   }
@@ -184,6 +235,7 @@ const UserHomePage: NextPage<Props> = function ({ userInfo }) {
                   toast({ title: "메세지 등록 실패", position: "top-left" });
                 }
                 setMessage("");
+                setMessageListFetchTrigger((prev) => !prev);
               }}
             >
               등록
@@ -213,31 +265,22 @@ const UserHomePage: NextPage<Props> = function ({ userInfo }) {
           </FormControl>
         </Box>
         <VStack spacing="12px" mt="6">
-          <MessageItem
-            uid="sdsd"
-            photoURL={authUser?.photoURL ?? ""}
-            displayName="test"
-            isOwner={false}
-            item={{
-              id: "test",
-              message: "test_asdfsdsff",
-              createAt: "2023-03-01",
-              reply: "reply",
-              replyAt: "2023-03-10",
-            }}
-          />
-
-          <MessageItem
-            uid="sdsd"
-            photoURL={authUser?.photoURL ?? ""}
-            displayName="test"
-            isOwner={true}
-            item={{
-              id: "test",
-              message: "test_asdfsdsff",
-              createAt: "2023-03-01",
-            }}
-          />
+          {messageList.map((messageData) => (
+            <MessageItem
+              key={`message-item-${userInfo.uid}-${messageData.id}`}
+              item={messageData}
+              uid={userInfo.uid}
+              displayName={userInfo.displayName ?? ""}
+              photoURL={userInfo.photoURL ?? "https://bit.ly/broken-link"}
+              isOwner={authUser !== null && authUser.uid === userInfo.uid}
+              onSendComplete={() => {
+                fetchMessageInfo({
+                  uid: userInfo.uid,
+                  messageId: messageData.id,
+                });
+              }}
+            />
+          ))}
         </VStack>
       </Box>
     </ServiceLayout>
